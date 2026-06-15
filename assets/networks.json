@@ -1,0 +1,23 @@
+{
+  "networks": {
+    "atlantic-testnet": {
+      "name": "Pharos Atlantic Testnet",
+      "chainId": 688689,
+      "rpcUrl": "https://atlantic.dplabs-internal.com",
+      "wssUrl": "wss://atlantic.dplabs-internal.com",
+      "explorerUrl": "https://atlantic.pharosscan.xyz",
+      "explorerApiUrl": "https://api.socialscan.io/pharos-atlantic-testnet/v1/explorer/command_api/contract",
+      "nativeCurrency": { "name": "Pharos", "symbol": "PHRS", "decimals": 18 },
+      "verifier": "blockscout",
+      "rateLimit": "500 requests per 5 minutes",
+      "maxPendingTxsPerAddress": 64
+    },
+    "pacific-mainnet": {
+      "name": "Pharos Pacific Mainnet",
+      "chainId": 688688,
+      "nativeCurrency": { "name": "Pharos", "symbol": "PHRS", "decimals": 18 },
+      "verifier": "blockscout"
+    }
+  },
+  "defaultNetwork": "atlantic-testnet"
+}

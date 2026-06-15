@@ -1,0 +1,15 @@
+# Build
+out/
+cache/
+broadcast/
+lib/
+
+# Secrets
+.env
+.private_key
+*.key
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
