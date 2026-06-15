@@ -1,27 +1,38 @@
 ---
-name: pharos-agent-session-wallet
+name: pharos-agent-toolkit
 description: >
-  Deploy and operate an AgentSessionWallet on Pharos — a smart-contract wallet
-  that grants an AI agent a time-boxed, spending-capped session key so it can
-  act autonomously on-chain (transfer native PHRS or ERC-20 tokens, call any
-  contract) while the human owner keeps full custody and can revoke instantly.
+  A two-module Pharos Skill toolkit for the on-chain AI-agent economy.
+  (1) AgentSessionWallet — a smart-contract wallet that grants an AI agent a
+  time-boxed, spending-capped session key so it can act autonomously on-chain
+  (transfer native PHRS or ERC-20 tokens, call any contract) while the human
+  owner keeps full custody and can revoke instantly.
+  (2) AgentSubscription — a recurring pull-payment primitive where a service
+  provider (which may be an agent) creates a plan and a subscriber/agent joins
+  once; a keeper then charges each period. The subscription layer that
+  complements x402 (per-call) and the wallet (custody).
   Use this skill when the user wants to: give an agent limited spending power,
-  set up an agent wallet, create a session key for an AI agent, cap how much an
-  agent can spend per day, delegate on-chain autonomy to a bot, revoke an agent
-  key, audit agent transactions, or build an autonomous on-chain agent economy
-  on Pharos. Do not attempt ERC-20 token deployment, batch airdrop, or generic
-  vault/time-lock tasks — those are covered by other skills.
-version: 0.1.0
+  set up an agent wallet, create a session key, cap agent daily spend, delegate
+  on-chain autonomy to a bot, revoke an agent key, audit agent transactions;
+  or create a subscription plan, subscribe an agent to a recurring service,
+  charge recurring fees, cancel a subscription, or build an autonomous on-chain
+  agent economy on Pharos. Do not attempt ERC-20 token deployment, batch
+  airdrop, or generic vault/time-lock tasks — those are covered by other skills.
+version: 0.2.0
 network: atlantic-testnet
 ---
 
-# Pharos Skill — AgentSessionWallet
+# Pharos Skill — Agent Economy Toolkit (2 modules)
 
-A Pharos Skill that teaches an AI agent (e.g. Claude Code) to deploy and operate
-an **AgentSessionWallet**: the custody primitive of an on-chain AI-agent economy.
+A Pharos Skill package that teaches an AI agent (e.g. Claude Code) two
+foundational primitives of the on-chain AI-agent economy:
 
-**One-line value:** _"Delegate limited, time-boxed, spending-capped autonomy to
-an AI agent — never hand over your private key."_
+1. **AgentSessionWallet** — custody: grant an agent a time-boxed, spending-capped
+   session key. _"Delegate autonomy — never hand over your private key."_
+2. **AgentSubscription** — recurring pull-payments: agents subscribe to services
+   and get charged each period. The subscription layer that complements x402.
+
+Together they let an agent **hold scoped funds** AND **pay for recurring
+services** — the two things every autonomous agent needs.
 
 ## Prerequisites
 
@@ -51,6 +62,8 @@ Foundry does **not** auto-read environment variables.
 > The agent scans this table to map a user's intent to the right reference
 > section, then runs the exact `cast`/`forge` command found there.
 
+### Module 1 — AgentSessionWallet (custody + session keys)
+
 | User Need (intent + synonyms) | Capability | Detailed Instructions |
 |---|---|---|
 | Deploy agent wallet / set up agent session wallet / create agent custody | `forge script` + built-in template | → `references/agent-wallet.md#deploy-agentsessionwallet` |
@@ -64,6 +77,20 @@ Foundry does **not** auto-read environment variables.
 | Check if agent key is active / remaining spend budget / grant status | `cast call isSessionKeyActive` / `spendAvailable` / `getGrant` | → `references/agent-wallet.md#query-wallet-balance--grant-status-free--no-gas` |
 | Owner withdraw / drain / emergency pull funds | `cast send withdraw` | → `references/agent-wallet.md#owner-escape-hatch-withdraw--drain` |
 | Audit agent activity / query agent transactions / show what the agent spent | `cast logs` | → `references/agent-wallet.md#query-events-full-on-chain-audit-trail` |
+
+### Module 2 — AgentSubscription (recurring pull-payments)
+
+| User Need (intent + synonyms) | Capability | Detailed Instructions |
+|---|---|---|
+| Deploy subscription contract / set up recurring payments | `forge script` + built-in template | → `references/agent-subscription.md#deploy-agentsubscription` |
+| Create a subscription plan / set up a recurring price / provider offers a service | `cast send createPlan` | → `references/agent-subscription.md#create-a-plan-provider` |
+| Subscribe to a plan (ERC-20) / join a recurring service | `approve` + `subscribeERC20` | → `references/agent-subscription.md#subscribe-erc-20-plan` |
+| Subscribe to a native PHRS plan / prefund recurring payments | `subscribeNative{value}` | → `references/agent-subscription.md#subscribe-native-phrs-plan--prefund` |
+| Charge a period / collect a subscription fee / keeper pulls payment | `cast send charge` | → `references/agent-subscription.md#charge-a-period-provider--keeper--agent` |
+| Cancel a subscription / stop recurring charges | `cast send cancel` | → `references/agent-subscription.md#cancel-subscriber-kill-switch` |
+| Pause / resume a plan (provider) | `pausePlan` / `resumePlan` | → `references/agent-subscription.md#pause--resume-plan-provider` |
+| When is the next charge due / is subscriber active / plan details | `secondsUntilDue` / `isSubscriberActive` / `getPlan` | → `references/agent-subscription.md#query-status--timing-free--no-gas` |
+| Query subscription charges / audit recurring payments | `cast logs` | → `references/agent-subscription.md#query-events-audit-trail` |
 
 ## Write Operation Pre-checks
 

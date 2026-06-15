@@ -1,30 +1,29 @@
-# AgentSessionWallet — Pharos Skill
+# Pharos Agent Economy Toolkit — 2 Skills
 
-> **Delegate limited, time-boxed, spending-capped autonomy to an AI agent on
-> Pharos — without ever handing over your private key.**
+> **Two foundational primitives for the on-chain AI-agent economy on Pharos.**
+> 1. **AgentSessionWallet** — delegate a time-boxed, spending-capped session key
+>    to an AI agent, without exposing your private key.
+> 2. **AgentSubscription** — recurring pull-payments: agents subscribe to
+>    services and get charged each period, revocable anytime.
 
-A reusable **Pharos Skill** for the *Skill-to-Agent Dual Cascade Hackathon*
-(Phase 1). It gives any AI agent (Claude Code, Codex, Cursor, …) a **custody
-primitive** for the on-chain agent economy: a smart-contract wallet that issues
-**session keys** to agents.
+A reusable **Pharos Skill** package for the *Skill-to-Agent Dual Cascade
+Hackathon* (Phase 1). Together these two modules let an autonomous agent
+**hold scoped funds** AND **pay for recurring services** — the two things every
+spending agent needs.
 
 [![Solidity](https://img.shields.io/badge/Solidity-^0.8.24-363636?logo=solidity)]()
 [![Foundry](https://img.shields.io/badge/Foundry-1.7.x-ff7a18?logo=foundry)]()
-[![Tests](https://img.shields.io/badge/tests-17%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-33%20passed-brightgreen)]()
 [![Network](https://img.shields.io/badge/Pharos-Atlantic%20Testnet-688689-blue)]()
 
 ---
 
-## Why this skill?
+## Why these skills?
 
-Every Phase-2 agent that transacts on Pharos needs **a wallet it can control**.
-But a real AI agent should **never** hold a user's full private key — that's how
-funds get drained. The 2026 state-of-the-art answer (Coinbase Smart Wallet,
-Alchemy Account Kit) is the **session key**: a separate, throwaway key granted
-**scoped** autonomy.
+Every Phase-2 agent that transacts on Pharos needs (a) a wallet it can safely
+control and (b) a way to pay for recurring services. This toolkit delivers both.
 
-`AgentSessionWallet` brings that pattern to Pharos as a composable Skill:
-
+### Module 1 — AgentSessionWallet (custody)
 | Feature | What it gives an agent |
 |---|---|
 | **Session keys** | An agent EOA that can spend **only** what the owner allows |
@@ -34,12 +33,22 @@ Alchemy Account Kit) is the **session key**: a separate, throwaway key granted
 | **Instant revoke** | One owner tx kills a key — the kill switch |
 | **Batching** | `executeAsAgent` runs a batch of calls in one tx (gas-efficient) |
 | **Composable** | Wallet can call **any** contract — x402, airdrop, vault, DEX, … |
-| **Full audit trail** | Every action emits events queryable with `cast logs` |
 | **Escape hatch** | Owner can drain native + ERC-20 at any time |
 
-It composes with the rest of the Pharos ecosystem: the owner can grant a native
-key for gas + an ERC-20 (e.g. test USDC) key for x402 agent-commerce, all in one
-wallet.
+### Module 2 — AgentSubscription (recurring payments)
+| Feature | What it gives an agent economy |
+|---|---|
+| **Plans** | A provider (can be an agent) sets token + amountPerPeriod + period |
+| **Pull-payment** | Subscriber keeps control; funds only move on valid `charge` |
+| **ERC-20 + native** | Approval-based (ERC20) or prefund-based (native PHRS) |
+| **Keeper-friendly** | Anyone (keeper/agent) calls `charge` when due; funds → provider |
+| **Instant cancel** | Subscriber cancels anytime; native prefund auto-refunded |
+| **Composable** | An agent's `executeAsAgent` batch can approve + subscribe in one go |
+
+It composes with the rest of the Pharos ecosystem: an agent wallet holds USDC,
+approves + subscribes to a data-feed service, and a keeper charges it daily —
+while x402 handles per-call micropayments. The subscription layer is what x402
+(per-call) cannot do.
 
 ---
 
@@ -47,20 +56,28 @@ wallet.
 
 ```
 .
-├── SKILL.md                       # AI-agent entry point + Capability Index
+├── SKILL.md                       # AI-agent entry point + Capability Index (both modules)
 ├── assets/
 │   ├── networks.json              # RPC, chain ID, explorer (Atlantic testnet)
 │   ├── tokens.json                # PHRS, test USDC, canonical contracts
-│   └── agent-wallet/
-│       └── AgentSessionWallet.sol # the contract template (also in src/)
+│   ├── agent-wallet/
+│   │   └── AgentSessionWallet.sol # Module 1 contract (also in src/)
+│   └── agent-subscription/
+│       └── AgentSubscription.sol  # Module 2 contract (also in src/)
 ├── references/
-│   └── agent-wallet.md            # machine-readable ops manual for the agent
-├── src/AgentSessionWallet.sol     # foundry source (compiles + tests)
-├── script/DeployAgentSessionWallet.s.sol
-├── test/AgentSessionWallet.t.sol  # 17 passing tests
+│   ├── agent-wallet.md            # Module 1 ops manual
+│   └── agent-subscription.md      # Module 2 ops manual
+├── src/                           # foundry sources (compile + tests)
+│   ├── AgentSessionWallet.sol
+│   └── AgentSubscription.sol
+├── script/                        # deploy scripts (both modules)
+├── test/                          # 33 passing tests (17 + 16)
 ├── foundry.toml
 ├── demo/
-│   └── demo-session-flow.sh       # end-to-end demo against a local anvil node
+│   ├── demo-session-flow.sh       # wallet lifecycle (local anvil)
+│   └── demo-subscription-flow.sh  # subscription lifecycle (local anvil)
+├── scripts/
+│   └── live-deploy-and-demo.sh    # one-shot testnet deploy+verify+demo (both)
 └── .env.example
 ```
 
@@ -81,7 +98,7 @@ source .env
 ### 2. Compile & test
 ```bash
 forge build
-forge test -vv                  # 17 tests, all green
+forge test -vv                  # 33 tests, all green (17 wallet + 16 subscription)
 ```
 
 ### 3. Use it with an AI agent (Claude Code)

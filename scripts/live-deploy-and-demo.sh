@@ -83,3 +83,43 @@ echo "   Wallet: $EXPLORER/address/$WALLET"
 echo "   Grant:  $EXPLORER/tx/$GRANTTX"
 echo "   Spend:  $EXPLORER/tx/$SPENDTX"
 echo "   Revoke: $EXPLORER/tx/$REVOKETX"
+
+# ────────────────────────────────────────────────────────────────────
+# Module 2: AgentSubscription (recurring pull-payments)
+# ────────────────────────────────────────────────────────────────────
+LOG "Module 2 — Deploy AgentSubscription"
+SUBADDR=$(forge script script/DeployAgentSubscription.s.sol:DeployAgentSubscription \
+  --rpc-url "$RPC" --private-key "$PRIVATE_KEY" --broadcast 2>&1 \
+  | grep -i "AgentSubscription address:" | awk '{print $3}' | sed 's/,//')
+echo "   subscription: $SUBADDR"
+echo "   explorer: $EXPLORER/address/$SUBADDR"
+
+LOG "Module 2 — Verify subscription contract"
+sleep 10
+forge verify-contract "$SUBADDR" src/AgentSubscription.sol:AgentSubscription \
+  --chain-id "$CHAIN_ID" --verifier-url "$VERIFY_URL" --verifier blockscout 2>&1 | tail -2 || true
+
+LOG "Module 2 — Create a 0.01 PHRS/hour plan (provider = owner)"
+PLAN_TX=$(cast send "$SUBADDR" "createPlan(address,uint256,uint64)(uint256)" \
+  "$ZERO" 10000000000000000 3600 \
+  --private-key "$PRIVATE_KEY" --rpc-url "$RPC" --json | cast --json -j .transactionHash 2>/dev/null || echo "?")
+echo "   createPlan tx: $EXPLORER/tx/$PLAN_TX"
+
+LOG "Module 2 — Subscriber (agent key) joins + prefunds 2 hours (0.02 PHRS)"
+SUB_TX=$(cast send "$SUBADDR" "subscribeNative(uint256,uint64)" 1 2 \
+  --value 20000000000000000 \
+  --private-key "$AGENT_PRIVATE_KEY" --rpc-url "$RPC" --json | cast --json -j .transactionHash 2>/dev/null || echo "?")
+echo "   subscribe tx: $EXPLORER/tx/$SUB_TX"
+echo "   seconds until due: $(cast call "$SUBADDR" "secondsUntilDue(address,uint256)(int256)" "$AGENT" 1 --rpc-url "$RPC" | awk '{print $1}')"
+
+LOG "Module 2 — Subscriber cancels → prefund refunded"
+CANCEL_TX=$(cast send "$SUBADDR" "cancel(uint256)" 1 \
+  --private-key "$AGENT_PRIVATE_KEY" --rpc-url "$RPC" --json | cast --json -j .transactionHash 2>/dev/null || echo "?")
+echo "   cancel tx: $EXPLORER/tx/$CANCEL_TX"
+
+echo
+echo "=========================================================="
+echo "✅ ALL DONE — both skills deployed. Add to BUIDL.md:"
+echo "   AgentSessionWallet: $EXPLORER/address/$WALLET"
+echo "   AgentSubscription:  $EXPLORER/address/$SUBADDR"
+echo "=========================================================="

@@ -7,36 +7,42 @@
 
 ## Title
 
-AgentSessionWallet — Session-Key Custody for On-Chain AI Agents
+Pharos Agent Economy Toolkit — Session-Key Custody + Recurring Subscriptions
 
 ## Tagline (one-liner)
 
-Give an AI agent a time-boxed, spending-capped wallet key — full agent autonomy on Pharos, zero private-key exposure.
+Two foundational on-chain primitives for AI agents: a session-key wallet (scoped
+autonomy, zero key exposure) and a recurring pull-payment subscription system.
 
 ## Description
 
-AgentSessionWallet is a **Pharos Skill** that gives any AI agent a **custody
-primitive**: a smart-contract wallet that issues **session keys** to agents.
+This **Pharos Skill** package delivers two foundational primitives of the
+on-chain AI-agent economy. An agent that transacts on-chain should never hold a
+user's real private key, and needs a way to pay for recurring services — these
+two modules solve exactly that.
 
-An AI agent that transacts on-chain should never hold a user's real private key.
-AgentSessionWallet solves this with the session-key pattern (the same idea behind
-Coinbase Smart Wallet and Alchemy Account Kit, now native to Pharos): the human
-**owner** deposits funds and grants the agent a separate, throwaway key that can
-only spend **what the owner allows** — a hard time expiry, a per-token spending
-cap over a rolling window, and an instant kill switch.
+### Module 1 — AgentSessionWallet (custody)
+A smart-contract wallet that grants an AI agent a **session key**: a separate,
+throwaway key that can only spend what the owner allows — a hard time expiry, a
+per-token spending cap over a rolling window, and an instant kill switch. The
+session-key pattern (behind Coinbase Smart Wallet / Alchemy Account Kit), now
+native to Pharos.
+
+### Module 2 — AgentSubscription (recurring payments)
+A pull-payment primitive where a provider (which may itself be an agent) creates
+a Plan (token, amountPerPeriod, period); a subscriber joins once; then a
+keeper/agent calls `charge` each period to pull the fee. The subscriber can
+cancel instantly. This is the **subscription layer** that complements x402
+(per-call) — the one thing agents need for recurring service payments.
 
 ### What it does
-- **Deploy** a smart-contract wallet owned by the human
-- **Grant a session key**: pick the agent's address, an expiry (e.g. +1 day), a
-  rolling window (e.g. daily), and a spend limit (e.g. 1 PHRS/day) — per token
-  (native PHRS or any ERC-20, e.g. USDC for agent commerce)
-- **Agent acts**: calls `executeAsAgent` to transfer PHRS/tokens or call any
-  contract, fully autonomously, within budget
-- **Enforced on-chain**: overspend reverts; the budget resets each window
-- **Revoke instantly**: owner cancels a key in one transaction
-- **Full audit trail**: every action emits events queryable with `cast logs`
-- **Composable**: the wallet can call **any** contract, so it composes with the
-  x402, airdrop, vault and DEX skills into complete Phase-2 agents
+- **Wallet**: deploy → fund → grant a time-boxed, capped session key (native or
+  ERC-20) → agent spends autonomously within budget → instant revoke → audit trail
+- **Subscription**: create plan → subscribe (ERC20 approve or native prefund) →
+  keeper charges each period → cancel anytime with refund → audit trail
+- **Composable**: an agent's `executeAsAgent` batch can approve + subscribe in
+  one call, all within its session-key budget. Wallet can call any contract,
+  composing with x402, airdrop, vault, DEX skills.
 
 ### Why it's the foundational Phase-1 skill
 Every Phase-2 agent that spends, trades, or pays on Pharos first needs a wallet
@@ -53,14 +59,15 @@ contract template) that any agent can call via natural language.
 ```
 
 ## How we built it
-- **Solidity ^0.8.24** smart contract (`AgentSessionWallet.sol`): batching,
-  per-(operator,token) grants, rolling-window spend math, reentrancy-safe
+- **Solidity ^0.8.24** — `AgentSessionWallet.sol` (batching, rolling-window spend
+  limits, per-token grants, instant revoke) and `AgentSubscription.sol` (plans,
+  ERC20/native pull-payment, prefund accounting, keeper `charge`)
 - **Foundry** (forge/cast) as the Skill Engine runtime — the standard Pharos way
-- **Skill package**: `SKILL.md` (frontmatter + Capability Index, 12 intents) +
-  `references/agent-wallet.md` (357-line machine-readable ops manual) +
+- **Skill package**: `SKILL.md` (frontmatter + dual Capability Index) +
+  `references/agent-wallet.md` + `references/agent-subscription.md` +
   `assets/{networks,tokens}.json`
-- **17 Foundry unit tests, all passing**
-- **Local end-to-end demo** verified on an `anvil` node at chain ID 688689
+- **33 Foundry unit tests, all passing** (17 wallet + 16 subscription)
+- **Local end-to-end demos** verified on `anvil` at chain ID 688689 (both modules)
 
 ## Challenges / technical highlights
 - Enforcing both **native value** (`Call.value`) and **ERC-20** spend in a single
@@ -72,18 +79,18 @@ contract template) that any agent can call via natural language.
 
 ## Demo
 - **Code**: https://github.com/lawrencezcl/pharos-agent-session-wallet
-- **Local lifecycle demo**: `./demo/demo-session-flow.sh` — runs
-  deploy → fund → grant → agent-spend → overspend-rejected → revoke → audit log
-  on a local node (no testnet tokens needed). Full output in the repo README.
-- **Live testnet**: contract deployed & verified on Pharos Atlantic Testnet
-  (chain 688689). [Paste explorer address after `./scripts/live-deploy-and-demo.sh`]
+- **Local lifecycle demos** (no testnet tokens needed):
+  - Wallet: `./demo/demo-session-flow.sh` — deploy→fund→grant→spend→overspend-rejected→revoke→audit
+  - Subscription: `./demo/demo-subscription-flow.sh` — createPlan→prefund→early-charge-rejected→charge→cancel-refund
+- **Live testnet**: both contracts deployed & verified on Pharos Atlantic Testnet
+  (chain 688689). [Paste explorer addresses after `./scripts/live-deploy-and-demo.sh`]
 
 ## Tech stack
 Solidity · Foundry (forge/cast) · Pharos Skill Engine · Pharos Atlantic Testnet ·
 EVM-compatible (viem/ethers ready) · AI-agent-driven (Claude Code / Codex)
 
 ## What's next
-- Compose into a full Phase-2 agent (wallet + x402 agent-commerce + DEX skills)
+- Compose into a full Phase-2 agent (wallet + subscription + x402 agent-commerce + DEX skills)
 - Add ERC-4337 EntryPoint integration for gasless/paymaster-sponsored sessions
 - Permit2 support for gasless approvals from agent sessions
 
